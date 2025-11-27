@@ -15,13 +15,20 @@ Starting with system tuning, one thing to remember is that basically everything 
 The goal is to maximize the bandwidth by adjusting TCP buffer size, connection rate and congestion.
 
 Kernel parameters for maximising TCP buffer size:<br>
-- <pre>net.core.rmem_max</pre> - absolute hard-limit for read/download.
-- <pre>net.core.wmem_max</pre> - absolute hard-limit for write/upload.
-- <pre>net.ipv4.tcp_rmem</pre> - maximum value for TCP read/download.
-- <pre>net.ipv4.tcp_wmem</pre> - maximum value for TCP write/upload.
+- <pre><span style="color: grey;"># absolute hard-limit for read/download</span><br>net.core.rmem_max</pre>
+- <pre><span style="color: grey;"># absolute hard-limit for write/upload</span>net.core.wmem_max</pre>
+- <pre><span style="color: grey;"># maximum value for TCP read/download</span>net.ipv4.tcp_rmem</pre>
+- <pre><span style="color: grey;"># maximum value for TCP write/upload</span>net.ipv4.tcp_wmem</pre>
 
-Example configuration in <pre>/etc/sysctl.d/99-sysctl.conf</pre>:<br>
+Kernel parameters for maximising connection rate:<br>
+- <pre><span style="color: grey;"># maximum length of the queue of pending connections</span><br>net.core.somaxconn</pre>
+- <pre><span style="color: grey;"># maximum length of the queue of packets</span>net.core.netdev_max_backlog</pre>
+- <pre><span style="color: grey;"># maximum number of sockets</span>net.ipv4.tcp_max_tw_buckets</pre>
+
+Example configuration:
 {% highlight ruby %}
+# --- /etc/sysctl.d/99-sysctl.conf
+
 # --- Global Limits
 net.core.rmem_max = 33554432
 net.core.wmem_max = 33554432
@@ -31,7 +38,12 @@ net.ipv4.tcp_rmem =  4096      87380     33554432
 net.ipv4.tcp_wmem =  4096      65536     33554432
 {% endhighlight %}
 
-Do not forget to apply these settings using <pre>sysctl -p</pre>.
+
+Do not forget to apply these settings:
+<pre>sysctl -p</pre>.
+
+
+
 
 <h4>Tuning for Databases</h4>
 The goal is to maximize I/O efficiency.
