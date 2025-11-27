@@ -16,7 +16,7 @@
 title: Continuous Learning
 email: your-email@example.com
 description: >- # this means to ignore newlines until "baseurl:"
-  Showcasing real-world projects in cloud computing, Linux, Kubenetes, Docker, CI/CD, machine learning, and more. Exploring ideas, challenges, and solutions—one project at a time.
+  Showcasing projects in Cloud Computing, Linux, Kubernetes, Docker, CI/CD, Machine Learning and much more. Exploring ideas, challenges and solutions.
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 #twitter_username: jekyllrb
