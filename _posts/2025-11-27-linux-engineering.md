@@ -11,6 +11,7 @@ This post is about Linux things beyond basic administration.
 In this section we will build a custom Kernel tuned for Kubernetes workloads.
 
 First we are going to prepare the environment for compiling the Kernel. You can find the minimal requirements here: [Minimal requirements to compile the Kernel][kernel_requirements]
+
 Since some of the packages should be already present in the Linux system, so, for quick installing, we can run this which should be enough for building the Kernel:
 {% highlight ruby %}
 sudo apt install -y gcc clang rustc bindgen make bash flex bison pahole mount quota iptables openssl bc tar python3 gawk build-essential libelf-dev libdw-dev elfutils libdwarf-dev zlib1g-dev libssl-dev
@@ -137,12 +138,32 @@ Next, we will mount that Debian image:
 {% highlight ruby %}
 sudo apt install libguestfs-tools
 # -m /dev/sda1 - mount point on the image (not the host)
-sudo guestmount -a debian-12-genericcloud-amd64.qcow2 -m /dev/sda1 /mnt/deb
+sudo guestmount -a debian-12-nocloud-amd64.qcow2 -m /dev/sda1 /mnt/deb
 {% endhighlight %}
+
+Now we can move the Kernel and its modules to mounted image:
+{% highlight ruby %}
+# don't forget to cd to Kernel source code directory
+sudo cp arch/x86/boot/bzImage /mnt/deb/boot/vmlinuz-custom
+sudo cp -r lib/modules/custom /mnt/deb/lib/modules/
+{% endhighlight %}
+
+Next, we will finish creating the image by chroot'ing into the image, building initramfs and updating GRUB:
+{% highlight ruby %}
+# building initramfs
+sudo chroot /mnt/deb /bin/bash
+update-initramfs -c -k custom
+# updating GRUB
+grub-mkconfig -o /boot/grub/grub.cfg
+# finishing touches
+guestunmount /mnt/deb
+cp debian-12-nocloud-amd64.qcow2 debian-12-custom.qcow2
+{% endhighlight %}
+
 
 <h2>Kernel Tuning</h2>
 
-Starting with system tuning, one thing to remember is that basically everything is already tuned to what is best by default, but that doesn't mean we can't tune the system for specific workloads - do a trade-off. For this we are going to use sysctl.
+Apart from building a custom Kernel, we can as well improve specific functions during runtime. In system tuning, one thing to remember is that basically everything is already tuned to what is best by default, but that doesn't mean we can't tune the system for specific workloads - do a trade-off. For this we are going to use sysctl for a couple of use-cases.
 
 <h4>Tuning for Network Services (WEB/API)</h4>
 
@@ -150,14 +171,17 @@ The goal is to maximize the bandwidth by adjusting TCP buffer size, connection r
 
 Kernel parameters for maximising TCP buffer size:<br>
 - <pre><span style="color: grey;"># absolute hard-limit for read/download</span><br>net.core.rmem_max</pre>
-- <pre><span style="color: grey;"># absolute hard-limit for write/upload</span>net.core.wmem_max</pre>
-- <pre><span style="color: grey;"># maximum value for TCP read/download</span>net.ipv4.tcp_rmem</pre>
-- <pre><span style="color: grey;"># maximum value for TCP write/upload</span>net.ipv4.tcp_wmem</pre>
+- <pre><span style="color: grey;"># absolute hard-limit for write/upload</span><br>net.core.wmem_max</pre>
+- <pre><span style="color: grey;"># maximum value for TCP read/download</span><br>net.ipv4.tcp_rmem</pre>
+- <pre><span style="color: grey;"># maximum value for TCP write/upload</span><br>net.ipv4.tcp_wmem</pre>
 
 Kernel parameters for maximising connection rate:<br>
 - <pre><span style="color: grey;"># maximum length of the queue of pending connections</span><br>net.core.somaxconn</pre>
-- <pre><span style="color: grey;"># maximum length of the queue of packets</span>net.core.netdev_max_backlog</pre>
-- <pre><span style="color: grey;"># maximum number of sockets</span>net.ipv4.tcp_max_tw_buckets</pre>
+- <pre><span style="color: grey;"># maximum length of the queue of packets</span><br>net.core.netdev_max_backlog</pre>
+- <pre><span style="color: grey;"># maximum number of sockets</span><br>net.ipv4.tcp_max_tw_buckets</pre>
+
+<h4>Tuning for Containerization</h4>
+The goal is to maximize concurrent processes efficiency.
 
 Example configuration:
 {% highlight ruby %}
@@ -172,40 +196,9 @@ net.ipv4.tcp_rmem =  4096      87380     33554432
 net.ipv4.tcp_wmem =  4096      65536     33554432
 {% endhighlight %}
 
-
 Do not forget to apply these settings:
 <pre>sysctl -p</pre>.
 
-
-
-
-<h4>Tuning for Databases</h4>
-The goal is to maximize I/O efficiency.
-
-<h4>Tuning for Containerization</h4>
-The goal is to maximize concurrent processes efficiency.
-
-<br>
-<h2>Performance Analysis with eBPF Tools</h2>
-
-To quickly recap eBPF, it's a technology that allowed engineers to build programs that run in kernel space. Some of the tools are <b>perf</b>, <b>strace</b> and <b>flamegraphs</b>.
-
-<br>
-<h2>Memory Management</h2>
-
-<br>
-<h2>Process Management</h2>
-
-<br>
-<h2>Systemd and Boot Management</h2>
-
-<br>
-<h2>Networking</h2>
-
-<br>
-<h2>File Systems and Storage Management</h2>
-
-
 [kernel_requirements]: https://docs.kernel.org/process/changes.html
 [kernel_source]: https://www.kernel.org/pub/linux/kernel/v6.x/
-[debian]: https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-13.2.0-amd64-netinst.iso
+[debian]: https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-amd64.qcow2
