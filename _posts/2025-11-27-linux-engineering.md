@@ -1,10 +1,135 @@
 ---
 layout: post
-title:  "Linux Engineering"
+title:  "Linux Engineering Mini-Projects"
 date:   2025-11-27
 categories: linux
 ---
 This post is about Linux things beyond basic administration.
+
+<h2>Bulding Custom Kernel for Kubernetes Workloads</h2>
+
+In this section we will build a custom Kernel tuned for Kubernetes workloads.
+
+First we are going to prepare the environment for compiling the Kernel. You can find the minimal requirements here: [Minimal requirements to compile the Kernel][kernel_requirements]
+Since some of the packages should be already present in the Linux system, so, for quick installing, we can run this which should be enough for building the Kernel:
+{% highlight bash %}
+sudo apt install -y gcc clang rustc bindgen make bash flex bison pahole mount quota iptables openssl bc tar python3 gawk build-essential libelf-dev libdw-dev elfutils libdwarf-dev zlib1g-dev libssl-dev
+{% endhighlight %}
+
+Then, we need to download the Kernel source code (for this example we are going to use v6.x version), which can be found here: [Kernel Source Code][kernel_source]
+
+Once the Kernel source code is downloaded and ready, we can start playing around with command line and parameters by entering the configuration:
+{% highlight bash %}
+make menuconfig
+{% endhighlight %}
+This will open a configuration window for setting various parameters (you can use forward-slash (/) to quickly search for parameters).
+
+Even though using this configuration window is easy since it's graphical, a more efficient approach would be to use it's config file directly, which is called `.config`.
+
+Before doing any edits we are need to know what parameters to change, we could of course experiment and so on, but in keeping this section shorter, we will pretend that we already know what settings we want to change. Since we will be building this Kernel for Kubernetes workloads, then we will have to tick these parameters:
+{% highlight ruby %}
+# Namespaces
+CONFIG_NAMESPACES=y
+CONFIG_UTS_NS=y
+CONFIG_IPC_NS=y
+CONFIG_USER_NS=y
+CONFIG_PID_NS=y
+CONFIG_NET_NS=y
+
+# Cgroups (v2 preffered)
+CONFIG_CGROUPS=y
+CONFIG_CGROUP_SCHED=y
+CONFIG_CPUSETS=y
+CONFIG_CGROUP_FREEZER=y
+CONFIG_CGROUP_DEVICE=y
+CONFIG_CGROUP_PIDS=y
+CONFIG_CGROUP_BPF=y
+CONFIG_MEMCG=y
+CONFIG_BLK_CGROUP=y
+
+# Containers Filesystems
+CONFIG_OVERLAY_FS=y
+CONFIG_EXT4_FS=y
+CONFIG_XFS_FS=y
+
+# Networking
+CONFIG_BRIDGE=y
+CONFIG_BRIDGE_NETFILTER=y
+CONFIG_NETFILTER=y
+CONFIG_NETFILTER_ADVANCED=y
+CONFIG_NETFILTER_XT_MATCH_CONNTRACK=y
+CONFIG_NETFILTER_XT_MARK=y
+CONFIG_NETFILTER_XT_TARGET_MASQUERADE=y
+CONFIG_NF_CONNTRACK=y
+CONFIG_VXLAN=y
+CONFIG_GENEVE=y
+CONFIG_BPF=y
+CONFIG_BPF_SYSCALL=y
+CONFIG_BPF_JIT=y
+CONFIG_CGROUP_BPF=y
+CONFIG_BPF_EVENTS=y
+CONFIG_BPF_LSM=y
+
+# Security
+CONFIG_SECCOMP=y
+CONFIG_SECCOMP_FILTER=y
+CONFIG_SECURITY_YAMA=y
+{% endhighlight %}
+
+Now, we will proceed to disable lot of uneeded things:
+{% highlight ruby %}
+# Filesystems
+# CONFIG_EXT2_FS is not set
+# CONFIG_EXT3_FS is not set
+# CONFIG_JFS_FS is not set
+# CONFIG_UFS_FS is not set
+# CONFIG_F2FS_FS is not set
+# CONFIG_AFS_FS is not set
+# CONFIG_NFS_FS is not set
+# CONFIG_9P_FS is not set
+# CONFIG_CEPH_FS is not set
+# CONFIG_OCFS2_FS is not set
+# CONFIG_BTRFS_FS is not set
+
+# Networking
+# CONFIG_ATALK is not set
+# CONFIG_CAN is not set
+# CONFIG_BT is not set
+
+# Multi-media
+# CONFIG_SOUND is not set
+# CONFIG_MEDIA_SUPPORT is not set
+# CONFIG_VIDEO_DEV is not set
+# CONFIG_DVB_CORE is not set
+
+# Input devices
+# CONFIG_INPUT_JOYSTICK is not set
+# CONFIG_INPUT_TABLET is not set
+# CONFIG_INPUT_TOUCHSCREEN is not set
+# CONFIG_INPUT_MISC is not set
+# CONFIG_DRM is not set
+{% endhighlight %}
+
+Also, since I will be running this in virtual machine, I'm gonna check couple more settings:
+{% highlight %}
+# KVM, VMware, VirtualBox support
+CONFIG_KVM_GUEST=y
+CONFIG_PARAVIRT=y
+CONFIG_PARAVIRT_CLOCK=y
+CONFIG_PARAVIRT_SPINLOCKS=y
+CONFIG_VIRTIO=y
+CONFIG_VIRTIO_BLK=y
+CONFIG_VMWARE_PVSCSI=y
+CONFIG_VMWARE_VMCI=y
+CONFIG_VBOXGUEST=y
+{% endhighlight %}
+
+Now, everything has been configured, we can proceed with building the Kernel, and we can do that with `make` command (for faster build it's possible to use more than one core):
+{% highlight bash %}
+# nproc - command to find cores in your computer, I will use 2 cores since my testing computer 4, and I still want to use it at least kinda efficiently
+make -j 2
+{% endhighlight %}
+
 
 <h2>Kernel Tuning</h2>
 
@@ -72,4 +197,5 @@ To quickly recap eBPF, it's a technology that allowed engineers to build program
 <h2>File Systems and Storage Management</h2>
 
 
-[jekyll]: https://jekyllrb.com
+[kernel_requirements]: https://docs.kernel.org/process/changes.html
+[kernel_source]: https://www.kernel.org/pub/linux/kernel/v6.x/
