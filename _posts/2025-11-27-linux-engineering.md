@@ -12,14 +12,14 @@ In this section we will build a custom Kernel tuned for Kubernetes workloads.
 
 First we are going to prepare the environment for compiling the Kernel. You can find the minimal requirements here: [Minimal requirements to compile the Kernel][kernel_requirements]
 Since some of the packages should be already present in the Linux system, so, for quick installing, we can run this which should be enough for building the Kernel:
-{% highlight bash %}
+{% highlight ruby %}
 sudo apt install -y gcc clang rustc bindgen make bash flex bison pahole mount quota iptables openssl bc tar python3 gawk build-essential libelf-dev libdw-dev elfutils libdwarf-dev zlib1g-dev libssl-dev
 {% endhighlight %}
 
 Then, we need to download the Kernel source code (for this example we are going to use v6.x version), which can be found here: [Kernel Source Code][kernel_source]
 
 Once the Kernel source code is downloaded and ready, we can start playing around with command line and parameters by entering the configuration:
-{% highlight bash %}
+{% highlight ruby %}
 make menuconfig
 {% endhighlight %}
 This will open a configuration window for setting various parameters (you can use forward-slash (/) to quickly search for parameters).
@@ -125,11 +125,20 @@ CONFIG_VBOXGUEST=y
 {% endhighlight %}
 
 Now, everything has been configured, we can proceed with building the Kernel, and we can do that with `make` command (for faster build it's possible to use more than one core):
-{% highlight bash %}
+{% highlight ruby %}
 # nproc - command to find cores in your computer, I will use 2 cores since my testing computer 4, and I still want to use it at least kinda efficiently
 make -j 2
+make modules
 {% endhighlight %}
 
+Now what we built the image, we can proceed with putting this custom Kernel into a distro, for that we will use Debian. Minimal Debian image can be found here: [Debian][debian]
+
+Next, we will mount that Debian image::
+{% highlight ruby %}
+sudo apt install libguestfs-tools
+# -m /dev/sda1 - mount point on the image (not the host)
+sudo guestmount -a debian-12-genericcloud-amd64.qcow2 -m /dev/sda1 /mnt/deb
+{% endhighlight %}
 
 <h2>Kernel Tuning</h2>
 
@@ -199,3 +208,4 @@ To quickly recap eBPF, it's a technology that allowed engineers to build program
 
 [kernel_requirements]: https://docs.kernel.org/process/changes.html
 [kernel_source]: https://www.kernel.org/pub/linux/kernel/v6.x/
+[debian]: https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-13.2.0-amd64-netinst.iso
