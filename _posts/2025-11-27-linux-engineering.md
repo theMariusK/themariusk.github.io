@@ -111,7 +111,7 @@ Now, we will proceed to disable lot of uneeded things:
 {% endhighlight %}
 
 Also, since I will be running this in virtual machine, I'm gonna check couple more settings:
-{% highlight %}
+{% highlight ruby %}
 # KVM, VMware, VirtualBox support
 CONFIG_KVM_GUEST=y
 CONFIG_PARAVIRT=y
@@ -133,7 +133,7 @@ make modules
 
 Now what we built the image, we can proceed with putting this custom Kernel into a distro, for that we will use Debian. Minimal Debian image can be found here: [Debian][debian]
 
-Next, we will mount that Debian image::
+Next, we will mount that Debian image:
 {% highlight ruby %}
 sudo apt install libguestfs-tools
 # -m /dev/sda1 - mount point on the image (not the host)
