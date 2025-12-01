@@ -137,27 +137,37 @@ Now what we built the image, we can proceed with putting this custom Kernel into
 Next, we will mount that Debian image:
 {% highlight ruby %}
 sudo apt install libguestfs-tools
-# -m /dev/sda1 - mount point on the image (not the host)
-sudo guestmount -a debian-12-nocloud-amd64.qcow2 -m /dev/sda1 /mnt/deb
+sudo guestmount -a debian-12-nocloud-amd64.qcow2 -i --rw /mnt/deb
 {% endhighlight %}
 
-Now we can move the Kernel and its modules to mounted image:
+Now, since we built a monolith Kernel (no modules (=n)) we can move the Kernel to mounted image (no need to move modules):
 {% highlight ruby %}
 # don't forget to cd to Kernel source code directory
-sudo cp arch/x86/boot/bzImage /mnt/deb/boot/vmlinuz-custom
-sudo cp -r lib/modules/custom /mnt/deb/lib/modules/
+sudo cp arch/x86/boot/bzImage /mnt/deb/boot/vmlinuz-6.17-custom
 {% endhighlight %}
 
-Next, we will finish creating the image by chroot'ing into the image, building initramfs and updating GRUB:
+Next, we will finish creating the image by chroot'ing into the image and updating GRUB:
 {% highlight ruby %}
-# building initramfs
-sudo chroot /mnt/deb /bin/bash
-update-initramfs -c -k custom
+# needed for update-grub
+sudo mount --bind /dev /mnt/deb/dev
+sudo mount --bind /proc /mnt/deb/proc
+sudo mount --bind /sys /mnt/deb/sys
 # updating GRUB
-grub-mkconfig -o /boot/grub/grub.cfg
+sudo chroot /mnt/deb /bin/bash
+update-grub
 # finishing touches
-guestunmount /mnt/deb
-cp debian-12-nocloud-amd64.qcow2 debian-12-custom.qcow2
+exit # to exit from chroot
+sudo umount /mnt/deb/sys
+sudo umount /mnt/deb/proc
+sudo umount /mnt/deb/dev
+sudo guestunmount /mnt/deb
+{% endhighlight %}
+
+Finally, to run our Debian Image with custom Kernel:
+{% highlight ruby %}
+sudo apt install qemu-system-x86
+# on GRUB screen you might need to select advanced section and select the custom Kernel there
+qemu-system-x86_64 -enable-kvm -m 1G -drive file=debian-12-nocloud-amd64.qcow2,format=qcow2 -nographic
 {% endhighlight %}
 
 
