@@ -27,149 +27,293 @@ This will open a configuration window for setting various parameters (you can us
 
 Even though using this configuration window is easy since it's graphical, a more efficient approach would be to use it's config file directly, which is called `.config`.
 
-Before doing any edits we are need to know what parameters to change, we could of course experiment and so on, but in keeping this section shorter, we will pretend that we already know what settings we want to change. Since we will be building this Kernel for Kubernetes workloads, then we will have to tick these parameters:
+Before doing any edits we are need to know what parameters to change, we could of course experiment and so on, but in keeping this section simple and short, we are just gonna ask an AI to generate us a sample `.config` file for monolith Kernel (meaning it will have no modules):
 {% highlight ruby %}
-# Namespaces
+#
+# BASIC SYSTEM & MONOLITHIC SETTINGS
+#
+CONFIG_64BIT=y
+CONFIG_X86_64=y
+CONFIG_X86=y
+CONFIG_MMU=y
+CONFIG_EXPERT=y
+CONFIG_EMBEDDED=y
+
+# Monolithic kernel
+# CONFIG_MODULES is not set
+
+# Kernel command line + initrd
+CONFIG_BLK_DEV_INITRD=y
+CONFIG_INITRAMFS_SOURCE=""
+CONFIG_RD_GZIP=y
+CONFIG_RD_XZ=y
+CONFIG_RD_BZIP2=y
+CONFIG_RD_LZ4=y
+
+#
+# BLOCK + PCI + VIRTIO (required to avoid VFS errors)
+#
+CONFIG_BLOCK=y
+CONFIG_BLK_DEV=y
+CONFIG_PARTITION_ADVANCED=y
+CONFIG_EFI_PARTITION=y
+CONFIG_MSDOS_PARTITION=y
+
+# /dev population – CRITICAL
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+CONFIG_TMPFS=y
+CONFIG_TMPFS_POSIX_ACL=y
+CONFIG_TMPFS_XATTR=y
+CONFIG_DEVPTS_MULTIPLE_INSTANCES=y
+
+# PCI + Virtio
+CONFIG_PCI=y
+CONFIG_PCI_MSI=y
+CONFIG_VIRTIO=y
+CONFIG_VIRTIO_PCI=y
+CONFIG_VIRTIO_BLK=y
+CONFIG_VIRTIO_NET=y
+CONFIG_VIRTIO_CONSOLE=y
+CONFIG_VIRTIO_BALLOON=y
+CONFIG_VIRTIO_INPUT=y
+
+#
+# FILESYSTEMS
+#
+CONFIG_EXT4_FS=y
+CONFIG_EXT4_FS_POSIX_ACL=y
+CONFIG_EXT4_FS_SECURITY=y
+
+# VFAT/FAT for /boot/efi
+CONFIG_FAT_FS=y
+CONFIG_MSDOS_FS=y
+CONFIG_VFAT_FS=y
+CONFIG_FAT_DEFAULT_UTF8=y
+
+# REQUIRED NLS (fixes cp437 / codepage errors)
+CONFIG_NLS=y
+CONFIG_NLS_DEFAULT="utf8"
+CONFIG_NLS_CODEPAGE_437=y
+CONFIG_NLS_CODEPAGE_850=y
+CONFIG_NLS_ASCII=y
+CONFIG_NLS_UTF8=y
+CONFIG_NLS_ISO8859_1=y
+CONFIG_NLS_ISO8859_15=y
+
+# OverlayFS (required for container layers)
+CONFIG_OVERLAY_FS=y
+CONFIG_OVERLAY_FS_REDIRECT_DIR=y
+CONFIG_OVERLAY_FS_INDEX=y
+CONFIG_OVERLAY_FS_XINO_AUTO=y
+
+# AutoFS (silences systemd failure)
+CONFIG_AUTOFS4_FS=y
+
+#
+# NAMESPACES (required for containers)
+#
 CONFIG_NAMESPACES=y
 CONFIG_UTS_NS=y
 CONFIG_IPC_NS=y
 CONFIG_USER_NS=y
 CONFIG_PID_NS=y
 CONFIG_NET_NS=y
+CONFIG_TIME_NS=y
 
-# Cgroups (v2 preffered)
+#
+# CGROUPS (cgroup v2)
+#
 CONFIG_CGROUPS=y
 CONFIG_CGROUP_SCHED=y
-CONFIG_CPUSETS=y
+CONFIG_FAIR_GROUP_SCHED=y
+CONFIG_CFS_BANDWIDTH=y
+CONFIG_RT_GROUP_SCHED=y
+CONFIG_CGROUP_PIDS=y
 CONFIG_CGROUP_FREEZER=y
 CONFIG_CGROUP_DEVICE=y
-CONFIG_CGROUP_PIDS=y
-CONFIG_CGROUP_BPF=y
-CONFIG_MEMCG=y
+CONFIG_CPUSETS=y
+CONFIG_CGROUP_CPUACCT=y
+CONFIG_CGROUP_PERF=y
 CONFIG_BLK_CGROUP=y
+CONFIG_MEMCG=y
+CONFIG_MEMCG_SWAP=y
+CONFIG_MEMCG_KMEM=y
+CONFIG_CGROUP_HUGETLB=y
+CONFIG_CGROUP_RDMA=y
+CONFIG_CGROUP_MISC=y
+CONFIG_CGROUP_BPF=y
 
-# Containers Filesystems
-CONFIG_OVERLAY_FS=y
-CONFIG_EXT4_FS=y
-CONFIG_XFS_FS=y
+# CGROUP v2 unified hierarchy support
+CONFIG_CGROUP2=y
 
-# Networking
-CONFIG_BRIDGE=y
-CONFIG_BRIDGE_NETFILTER=y
-CONFIG_NETFILTER=y
-CONFIG_NETFILTER_ADVANCED=y
-CONFIG_NETFILTER_XT_MATCH_CONNTRACK=y
-CONFIG_NETFILTER_XT_MARK=y
-CONFIG_NETFILTER_XT_TARGET_MASQUERADE=y
-CONFIG_NF_CONNTRACK=y
-CONFIG_VXLAN=y
-CONFIG_GENEVE=y
+#
+# EBPF / BPF
+#
 CONFIG_BPF=y
 CONFIG_BPF_SYSCALL=y
 CONFIG_BPF_JIT=y
-CONFIG_CGROUP_BPF=y
 CONFIG_BPF_EVENTS=y
+CONFIG_HAVE_EBPF_JIT=y
+CONFIG_FTRACE=y
+CONFIG_KPROBES_ON_FTRACE=y
+
+CONFIG_NET_CLS_BPF=y
+CONFIG_NET_ACT_BPF=y
+CONFIG_BPF_STREAM_PARSER=y
 CONFIG_BPF_LSM=y
 
-# Security
-CONFIG_SECCOMP=y
-CONFIG_SECCOMP_FILTER=y
-CONFIG_SECURITY_YAMA=y
-{% endhighlight %}
+#
+# NETWORKING (K8s compatible)
+#
+CONFIG_NET=y
+CONFIG_PACKET=y
+CONFIG_UNIX=y
+CONFIG_INET=y
+CONFIG_TCP_CONG_CUBIC=y
+CONFIG_DEFAULT_TCP_CONG="cubic"
 
-Now, we will proceed to disable lot of uneeded things:
-{% highlight ruby %}
-# Filesystems
-# CONFIG_EXT2_FS is not set
-# CONFIG_EXT3_FS is not set
-# CONFIG_JFS_FS is not set
-# CONFIG_UFS_FS is not set
-# CONFIG_F2FS_FS is not set
-# CONFIG_AFS_FS is not set
-# CONFIG_NFS_FS is not set
-# CONFIG_9P_FS is not set
-# CONFIG_CEPH_FS is not set
-# CONFIG_OCFS2_FS is not set
-# CONFIG_BTRFS_FS is not set
+# IPv6
+CONFIG_IPV6=y
+CONFIG_IPV6_ROUTER_PREF=y
+CONFIG_IPV6_ROUTE_INFO=y
+CONFIG_IPV6_MULTIPLE_TABLES=y
 
-# Networking
-# CONFIG_ATALK is not set
-# CONFIG_CAN is not set
-# CONFIG_BT is not set
+# Bridge/veth/tunnels
+CONFIG_BRIDGE=y
+CONFIG_VETH=y
+CONFIG_VLAN_8021Q=y
+CONFIG_NET_IP_TUNNEL=y
+CONFIG_TUN=y
+CONFIG_VXLAN=y
+CONFIG_GENEVE=y
 
-# Multi-media
-# CONFIG_SOUND is not set
-# CONFIG_MEDIA_SUPPORT is not set
-# CONFIG_VIDEO_DEV is not set
-# CONFIG_DVB_CORE is not set
+# Netfilter (iptables + nftables)
+CONFIG_NETFILTER=y
+CONFIG_NETFILTER_ADVANCED=y
+CONFIG_NF_CONNTRACK=y
+CONFIG_NF_NAT=y
+CONFIG_NF_NAT_MASQUERADE_IPV4=y
+CONFIG_NF_NAT_MASQUERADE_IPV6=y
 
-# Input devices
-# CONFIG_INPUT_JOYSTICK is not set
-# CONFIG_INPUT_TABLET is not set
-# CONFIG_INPUT_TOUCHSCREEN is not set
-# CONFIG_INPUT_MISC is not set
-# CONFIG_DRM is not set
-{% endhighlight %}
+# iptables
+CONFIG_NETFILTER_XTABLES=y
+CONFIG_NETFILTER_XT_TARGET_MASQUERADE=y
+CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y
+CONFIG_NETFILTER_XT_MATCH_CONNTRACK=y
+CONFIG_IP_NF_IPTABLES=y
+CONFIG_IP_NF_FILTER=y
+CONFIG_IP_NF_NAT=y
 
-Also, since I will be running this in virtual machine, I'm gonna check couple more settings:
-{% highlight ruby %}
-# KVM, VMware, VirtualBox support
-CONFIG_KVM_GUEST=y
+# nftables
+CONFIG_NF_TABLES=y
+CONFIG_NF_TABLES_INET=y
+CONFIG_NFT_CT=y
+CONFIG_NFT_COUNTER=y
+CONFIG_NFT_MASQ=y
+CONFIG_NFT_NAT=y
+
+#
+# LVM + DM-crypt (safe defaults)
+#
+CONFIG_MD=y
+CONFIG_BLK_DEV_DM=y
+CONFIG_DM_CRYPT=y
+CONFIG_DM_SNAPSHOT=y
+CONFIG_DM_THIN_PROVISIONING=y
+CONFIG_DM_MIRROR=y
+CONFIG_DM_ZERO=y
+CONFIG_DM_VERITY=y
+
+# Crypto primitives for dm-crypt
+CONFIG_CRYPTO_AES=y
+CONFIG_CRYPTO_XTS=y
+CONFIG_CRYPTO_SHA256=y
+CONFIG_CRYPTO_SHA512=y
+CONFIG_CRYPTO_CBC=y
+CONFIG_CRYPTO_ECB=y
+CONFIG_CRYPTO_USER_API_HASH=y
+CONFIG_CRYPTO_USER_API_SKCIPHER=y
+
+#
+# SYSTEMD / USERSpace helpers
+#
+CONFIG_SIGNALFD=y
+CONFIG_TIMERFD=y
+CONFIG_EVENTFD=y
+CONFIG_EPOLL=y
+CONFIG_FHANDLE=y
+CONFIG_SHMEM=y
+CONFIG_AIO=y
+CONFIG_IO_URING=y
+CONFIG_INOTIFY_USER=y
+CONFIG_FANOTIFY=y
+
+#
+# VIRTUALIZATION (guest)
+#
 CONFIG_PARAVIRT=y
 CONFIG_PARAVIRT_CLOCK=y
+CONFIG_KVM_GUEST=y
 CONFIG_PARAVIRT_SPINLOCKS=y
-CONFIG_VIRTIO=y
-CONFIG_VIRTIO_BLK=y
-CONFIG_VMWARE_PVSCSI=y
-CONFIG_VMWARE_VMCI=y
-CONFIG_VBOXGUEST=y
+
+#
+# SERIAL CONSOLE (QEMU)
+#
+CONFIG_TTY=y
+CONFIG_VT=y
+CONFIG_VT_CONSOLE=y
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_CONSOLE=y
+
+#
+# SCHEDULER / TIMERS
+#
+CONFIG_NO_HZ_IDLE=y
+CONFIG_HIGH_RES_TIMERS=y
+CONFIG_PREEMPT_NONE=y
+CONFIG_HZ_100=y
+
+#
+# MISC
+#
+CONFIG_PROC_FS=y
+CONFIG_SYSFS=y
+CONFIG_HUGETLBFS=y
+CONFIG_HUGETLB_PAGE=y
+CONFIG_SWAP=y
+{% endhighlight %}
+
+Also, since we changed `.config` contents with ours, we need to fill in the defaults, it can be done using:
+{% highlight ruby %}
+make olddefconfig
 {% endhighlight %}
 
 Now, everything has been configured, we can proceed with building the Kernel, and we can do that with `make` command (for faster build it's possible to use more than one core):
 {% highlight ruby %}
 # nproc - command to find cores in your computer, I will use 2 cores since my testing computer 4, and I still want to use it at least kinda efficiently
 make -j 2
-make modules
 {% endhighlight %}
 
-Now what we built the image, we can proceed with putting this custom Kernel into a distro, for that we will use Debian. Minimal Debian image can be found here: [Debian][debian]
+Now what we built the image, we can proceed with downloading a Debian image which will be used to run this custom Kernel, it can be found here: [Debian][debian]
 
-Next, we will mount that Debian image:
+Finally, I have made a simple script to run our Debian Image with custom Kernel:
 {% highlight ruby %}
-sudo apt install libguestfs-tools
-sudo guestmount -a debian-12-nocloud-amd64.qcow2 -i --rw /mnt/deb
+# run_custom_kernel.sh
+#!/bin/bash
+
+[ $# -lt 1 ] && echo "Please provide image path" && exit 1
+
+qemu-system-x86_64 \
+	-kernel linux-6.17/arch/x86/boot/bzImage \
+	-drive file=$1,if=virtio,format=qcow2 \
+	-append "root=/dev/vda1 console=ttyS0" \
+	-m 1G \
+	-enable-kvm \
+	-nographic
 {% endhighlight %}
 
-Now, since we built a monolith Kernel (no modules (=n)) we can move the Kernel to mounted image (no need to move modules):
-{% highlight ruby %}
-# don't forget to cd to Kernel source code directory
-sudo cp arch/x86/boot/bzImage /mnt/deb/boot/vmlinuz-6.17-custom
-{% endhighlight %}
-
-Next, we will finish creating the image by chroot'ing into the image and updating GRUB:
-{% highlight ruby %}
-# needed for update-grub
-sudo mount --bind /dev /mnt/deb/dev
-sudo mount --bind /proc /mnt/deb/proc
-sudo mount --bind /sys /mnt/deb/sys
-# updating GRUB
-sudo chroot /mnt/deb /bin/bash
-update-grub
-# finishing touches
-exit # to exit from chroot
-sudo umount /mnt/deb/sys
-sudo umount /mnt/deb/proc
-sudo umount /mnt/deb/dev
-sudo guestunmount /mnt/deb
-{% endhighlight %}
-
-Finally, to run our Debian Image with custom Kernel:
-{% highlight ruby %}
-sudo apt install qemu-system-x86
-# on GRUB screen you might need to select advanced section and select the custom Kernel there
-qemu-system-x86_64 -enable-kvm -m 1G -drive file=debian-12-nocloud-amd64.qcow2,format=qcow2 -nographic
-{% endhighlight %}
-
+This runs our custom Kernel in the Debian image.
 
 <h2>Kernel Tuning</h2>
 
