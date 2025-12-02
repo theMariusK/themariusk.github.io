@@ -6,9 +6,9 @@ categories: linux
 ---
 This post is about Linux things beyond basic administration.
 
-<h2>Bulding Custom Kernel for Kubernetes Workloads</h2>
+<h2>Bulding and Running Custom Kernel</h2>
 
-In this section we will build a custom Kernel tuned for Kubernetes workloads.
+In this section we will build and run a custom Kernel, and for more interseting purpose, we are going to tune it for Kubernetes workloads.
 
 First we are going to prepare the environment for compiling the Kernel. You can find the minimal requirements here: [Minimal requirements to compile the Kernel][kernel_requirements]
 
@@ -295,9 +295,9 @@ Now, everything has been configured, we can proceed with building the Kernel, an
 make -j 2
 {% endhighlight %}
 
-Now what we built the image, we can proceed with downloading a Debian image which will be used to run this custom Kernel, it can be found here: [Debian][debian]
+Now that we built the image, we can proceed with downloading a Debian image which will be used to run this custom Kernel, it can be found here: [Debian][debian]
 
-Finally, I have made a simple script to run our Debian Image with custom Kernel:
+Finally, we will use QEMU/KVM to run the image as a virtual machine, for that we will need the tools (`sudo apt install qemu-system-x86`), after all the things was taken care of, I have made a simple script to run our Debian Image with custom Kernel:
 {% highlight ruby %}
 # run_custom_kernel.sh
 #!/bin/bash
@@ -313,7 +313,13 @@ qemu-system-x86_64 \
 	-nographic
 {% endhighlight %}
 
-This runs our custom Kernel in the Debian image.
+This runs our custom Kernel in the Debian image. Once the OS is loaded, we login with `root` and check the Kernel:
+{% highlight ruby %}
+uname -r
+# 6.17.0
+{% endhighlight %}
+
+That's it, we successfully built and ran custom Kernel in a Debian image.
 
 <h2>Kernel Tuning</h2>
 
